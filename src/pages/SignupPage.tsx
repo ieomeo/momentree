@@ -168,11 +168,16 @@ export default function SignupPage() {
   };
 
   const verifyCode = async () => {
+    const value = getValues('email').trim().toLowerCase();
+    if (!EMAIL_RE.test(value)) {
+      toast.error('인증번호를 받은 이메일 주소를 입력해주세요');
+      return;
+    }
     setBusy(true);
     try {
-      const result = await authAPI.verifyEmailCode(getValues('email'), codeInput);
+      const result = await authAPI.verifyEmailCode(value, codeInput);
       setProof(result.proof);
-      setVerifiedEmail(emailValue);
+      setVerifiedEmail(value);
       setDemoCode(null);
       toast.success('이메일 인증이 완료됐어요');
     } catch (e) {
@@ -256,7 +261,7 @@ export default function SignupPage() {
             {errors.email && <ErrorText>{errors.email.message}</ErrorText>}
             {verified && <OkText>✔ 이메일 인증이 완료됐어요</OkText>}
 
-            {!verified && codeEmail !== null && codeEmail === emailValue && (
+            {!verified && (
               <CodeBox>
                 <InlineRow>
                   <Input
@@ -276,8 +281,8 @@ export default function SignupPage() {
                     인증 확인
                   </Button>
                 </InlineRow>
-                <Muted style={{ marginTop: '0.4rem' }}>인증번호는 {CODE_TTL_MINUTES}분 동안 유효해요.</Muted>
-                {demoCode && (
+                <Muted style={{ marginTop: '0.4rem' }}>메일로 받은 6자리 번호를 입력해주세요. 인증번호는 {CODE_TTL_MINUTES}분 동안 유효해요.</Muted>
+                {codeEmail === emailValue && demoCode && (
                   <DevBox>
                     개발 모드: 메일 서비스가 연결되지 않아 인증번호를 화면에 보여줘요. → <strong>{demoCode}</strong>
                   </DevBox>
