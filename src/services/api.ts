@@ -72,23 +72,32 @@ export const authAPI = {
   signup: async (input: {
     email: string; password: string; nickname: string; identity: IdentityInput; emailProof: string;
     consents: { terms: boolean; consent: boolean; privacy: boolean };
-  }): Promise<User | null> => {
+  }): Promise<User> => {
     const client = requireSupabase();
-    const { email, password, ...profile } = input;
-    const { data: current, error: sessionError } = await client.auth.getSession();
-    if (sessionError) throw sessionError;
-    if (current.session && current.session.user.email?.toLowerCase() !== email.toLowerCase()) {
+    const email = input.email.trim().toLowerCase();
+    const { password, ...profile } = input;
+    const current = await client.auth.getSession();
+    if (current.error) throw current.error;
+    if (current.data.session && current.data.session.user.email?.toLowerCase() !== email) {
       throw new Error('다른 이메일로 로그인되어 있어요. 로그아웃한 뒤 다시 시도해주세요.');
     }
-    if (!current.session) {
-      sessionStorage.setItem('momentree-auth-intent', 'signup');
-      const { data, error } = await client.auth.signUp({ email, password, options: { emailRedirectTo: callbackUrl() } });
-      if (error) { sessionStorage.removeItem('momentree-auth-intent'); throw error; }
-      if (!data.session) return null;
-      sessionStorage.removeItem('momentree-auth-intent');
+    // A confirmed, unfinished signup can be resumed only with its existing password.
+    const existing = current.data.session ? null : await client.auth.signInWithPassword({ email, password });
+    if (current.data.session || existing?.data.session) {
+      try {
+        await rpc<void>('auth.signup', profile);
+      } catch (error) {
+        if (!current.data.session) await client.auth.signOut({ scope: 'local' });
+        throw error;
+      }
+    } else {
+      await rpc<{ created: boolean }>('auth.provisionSignup', { ...input, email });
+      const { error } = await client.auth.signInWithPassword({ email, password });
+      if (error) throw new Error('가입은 완료됐지만 자동 로그인에 실패했어요. 로그인 화면에서 다시 시도해주세요.');
     }
-    await rpc<void>('auth.signup', profile);
-    return authAPI.me();
+    const user = await authAPI.me();
+    if (!user) throw new Error('가입 정보를 확인하지 못했어요. 로그인 화면에서 다시 시도해주세요.');
+    return user;
   },
 
   login: async (email: string, password: string): Promise<User> => {

@@ -208,7 +208,6 @@ export default function SignupPage() {
         identity: { name: v.realName, birthDate: v.birthDate, phone: v.phone },
         consents: { terms: v.terms, consent: v.consent, privacy: v.privacy },
       });
-      if (!user) { toast.info('이메일 확인 링크를 같은 브라우저에서 열어 가입을 마쳐주세요.'); return; }
       qc.clear();
       qc.setQueryData(['me'], user);
       toast.success('모먼트리에 오신 걸 환영해요 🌿');
