@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { toast } from 'react-toastify';
+import { errorMessage } from '../services/format';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import styled from '@emotion/styled';
@@ -53,9 +56,16 @@ const Leaves = styled(Link)`
 export default function Header({ me }: { me: User }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const [linking, setLinking] = useState(false);
+  const linkNaver = async () => {
+    setLinking(true);
+    try { await authAPI.startNaver(true); }
+    catch (error) { toast.error(errorMessage(error)); setLinking(false); }
+  };
 
   const logout = async () => {
-    await authAPI.logout();
+    try { await authAPI.logout(); }
+    catch (error) { toast.error(errorMessage(error)); return; }
     qc.clear();
     qc.setQueryData(['me'], null);
     navigate('/');
@@ -75,6 +85,7 @@ export default function Header({ me }: { me: User }) {
           <Leaves to="/me?tab=leaves" title="나의 정원에서 나뭇잎 보기">
             <LeafIcon size={20} /> {me.leaves}
           </Leaves>
+          <Button $variant="sand" disabled={linking} onClick={() => void linkNaver()}>네이버 연결</Button>
           <Button $variant="sand" onClick={logout}>로그아웃</Button>
         </Nav>
       </Inner>

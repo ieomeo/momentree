@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import styled from '@emotion/styled';
@@ -10,6 +10,7 @@ import { Button, ErrorText, Field, Input, Muted } from '../components/ui';
 import { CONSENT_MD, PRIVACY_POLICY_MD, TERMS_MD } from '../content/legal';
 import { CODE_RESEND_SECONDS, CODE_TTL_MINUTES, authAPI } from '../services/api';
 import { errorMessage, yearsAgoKey } from '../services/format';
+import { supabase } from '../services/supabase';
 import { color } from '../styles/theme';
 
 interface SignupForm {
@@ -118,7 +119,15 @@ const MiniLabel = styled.label`
 export default function SignupPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { register, handleSubmit, getValues, watch, formState: { errors, isSubmitting } } = useForm<SignupForm>();
+  const [search] = useSearchParams();
+  const complete = search.get('complete') === '1';
+  const { register, handleSubmit, getValues, setValue, watch, formState: { errors, isSubmitting } } = useForm<SignupForm>();
+  useEffect(() => {
+    if (complete) void supabase?.auth.getSession().then(({ data }) => {
+      if (data.session?.user.email) setValue('email', data.session.user.email);
+    });
+  }, [complete, setValue]);
+  const [proof, setProof] = useState('');
   const [legal, setLegal] = useState<'terms' | 'consent' | 'privacy' | null>(null);
 
   // [추가] 이메일 인증 상태
@@ -161,7 +170,8 @@ export default function SignupPage() {
   const verifyCode = async () => {
     setBusy(true);
     try {
-      await authAPI.verifyEmailCode(getValues('email'), codeInput);
+      const result = await authAPI.verifyEmailCode(getValues('email'), codeInput);
+      setProof(result.proof);
       setVerifiedEmail(emailValue);
       setDemoCode(null);
       toast.success('이메일 인증이 완료됐어요');
@@ -187,11 +197,14 @@ export default function SignupPage() {
     try {
       const user = await authAPI.signup({
         email: v.email.trim(),
-        password: v.password,
+        password: v.password ?? '',
+        emailProof: proof,
         nickname: v.nickname.trim(),
         identity: { name: v.realName, birthDate: v.birthDate, phone: v.phone },
         consents: { terms: v.terms, consent: v.consent, privacy: v.privacy },
       });
+      if (!user) { toast.info('이메일 확인 링크를 같은 브라우저에서 열어 가입을 마쳐주세요.'); return; }
+      qc.clear();
       qc.setQueryData(['me'], user);
       toast.success('모먼트리에 오신 걸 환영해요 🌿');
       navigate('/feed');
@@ -218,7 +231,7 @@ export default function SignupPage() {
               <Input
                 type="email"
                 placeholder="이메일"
-                readOnly={verified}
+                readOnly={verified || complete}
                 {...register('email', {
                   required: '이메일을 입력해주세요',
                   pattern: { value: EMAIL_RE, message: '올바른 이메일 형식이 아니에요' },
@@ -273,14 +286,14 @@ export default function SignupPage() {
             )}
           </Field>
 
-          <Field>
+          {!complete && <Field>
             <Input
               type="password"
               placeholder="비밀번호 (6자 이상)"
               {...register('password', { required: '비밀번호를 입력해주세요', minLength: { value: 6, message: '6자 이상 입력해주세요' } })}
             />
             {errors.password && <ErrorText>{errors.password.message}</ErrorText>}
-          </Field>
+          </Field>}
           <Field>
             <Input
               placeholder="닉네임 (익명으로 표시돼요)"
