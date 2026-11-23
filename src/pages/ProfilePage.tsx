@@ -33,7 +33,12 @@ function Profile({id}: {id: string}) {
     <p>{me?.isSuperAdmin ? '총괄 운영자는 나뭇잎이 차감되지 않아요.' : '한 번 보내면 나뭇잎 30개가 소모돼요.'} 쪽지함에서는 답장할 수 없어요.</p><Button type="submit" disabled={busy || !body.trim()}>보내기</Button></form>}
     <h3>공개 글</h3>
     {!p.posts.length && <p>볼 수 있는 공개 글이 없어요.</p>}
-    <ul>{p.posts.map(post => <li key={post.id}><Link to={`/post/${post.id}`}>{post.title}</Link> · {post.category} · {timeAgo(post.created_at)}</li>)}</ul>
+    <ul style={{display:'grid', gap:'.7rem'}}>{p.posts.map(post => <li key={post.id} style={{margin:0}}>
+      <Link to={`/post/${post.id}`} style={{display:'block', padding:'.85rem 1rem', border:'1px solid #d8decb', borderRadius:12, background:'#fbfcf8', overflowWrap:'anywhere'}}>
+        <strong style={{display:'block'}}>{post.title}</strong>
+        <span style={{display:'block', marginTop:'.25rem', fontSize:'.85rem', color:'#686355'}}>{post.category} · {timeAgo(post.created_at)}</span>
+      </Link>
+    </li>)}</ul>
     {(page > 0 || p.more) && <nav aria-label="공개 글 페이지" style={{display:'flex', gap:'.75rem', alignItems:'center', flexWrap:'wrap'}}><Button disabled={!page} onClick={()=>setPage(page-1)}>이전</Button> {page+1} <Button disabled={!p.more} onClick={()=>setPage(page+1)}>다음</Button></nav>}
   </Card>;
 }

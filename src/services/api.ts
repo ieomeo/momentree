@@ -243,6 +243,7 @@ export const profileAPI = {
   garden: () => rpc<{bio: string; total: number}>('profile.garden'),
   save: (bio: string) => rpc<void>('profile.saveBio', bio),
   send: (id: string, body: string) => rpc<void>('direct.send', id, body),
-  inbox: (offset: number) => rpc<{more: boolean; notes: {id: string; sender_id: string; nickname: string; body: string; created_at: string; reported: boolean}[]}>('direct.inbox', offset),
+  inbox: (offset: number) => rpc<{more: boolean; notes: {id: string; nickname: string}[]}>('direct.inbox', offset),
+  noteDetail: (id: string) => rpc<{id: string; sender_id: string; nickname: string; body: string; created_at: string; reported: boolean}>('direct.detail', id),
   report: (id: string, reason: string) => rpc<void>('direct.report', id, reason),
 };

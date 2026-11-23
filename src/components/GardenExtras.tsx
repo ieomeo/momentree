@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { Button, Card, Textarea } from './ui';
@@ -20,8 +20,21 @@ export function GardenProfile({ fixedGrowth }: { fixedGrowth: boolean }) {
       <label>자기소개 (최대 500자 · 다른 회원에게 공개)<Textarea style={{display:'block',minHeight:104}} maxLength={500} value={draft??bio} onChange={e=>setDraft(e.target.value)} /></label>
       <Button disabled={busy || draft===null} type="submit">저장</Button>
     </form>
-    <h3 style={{marginBlockStart: '1.6rem'}}>정원 성장 · {index+1}단계 {stage[1]}</h3>
-    <img src={`/growth/${index+1}.webp`} alt={stage[1]} style={{width:'100%',maxWidth:360,display:'block',margin:'auto'}} />
+    {index === 14 ? (
+      <figure style={{position:'relative', isolation:'isolate', overflow:'hidden', borderRadius:18, marginBlockStart:'1.6rem', minHeight:'clamp(240px, 48vw, 490px)', display:'flex', alignItems:'flex-end', background:'#403522'}}>
+        <img src="/growth/15.webp" alt="햇살이 비치는 커다란 나무와 숲" style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', objectPosition:'center 53%', zIndex:-2}} />
+        <div aria-hidden="true" style={{position:'absolute', inset:0, background:'linear-gradient(0deg, rgba(28,23,13,.88), transparent 65%)', zIndex:-1}} />
+        <figcaption style={{color:'#fffaf0', padding:'clamp(1rem, 4vw, 2rem)', textShadow:'0 1px 5px #261e13'}}>
+          <span style={{display:'block', fontSize:'.9rem'}}>정원 성장 · 15단계</span>
+          <h3 style={{fontSize:'clamp(1.25rem, 3.5vw, 2rem)'}}>{stage[1]}</h3>
+        </figcaption>
+      </figure>
+    ) : (
+      <>
+        <h3 style={{marginBlockStart:'1.6rem'}}>정원 성장 · {index+1}단계 {stage[1]}</h3>
+        <img src={`/growth/${index+1}.webp`} alt={stage[1]} style={{width:'100%', maxWidth:360, display:'block', margin:'.75rem auto 0'}} />
+      </>
+    )}
     {!fixedGrowth && <>
     <p>지금까지 모은 나뭇잎 {total.toLocaleString()}개</p>
     <div role="progressbar" aria-label={next ? `다음 성장 단계: ${next[1]}` : '현재 공개된 성장 단계 완료'}
@@ -36,18 +49,36 @@ export function GardenProfile({ fixedGrowth }: { fixedGrowth: boolean }) {
   </Card>;
 }
 export function GardenInbox(){
-  const [page,setPage]=useState(0), [target,setTarget]=useState(''), [reason,setReason]=useState(''), [busy,setBusy]=useState(false);
-  const q=useQuery({queryKey:['direct-inbox',page],queryFn:()=>profileAPI.inbox(page*20)});
+  const [params,setParams]=useSearchParams();
+  const id=params.get('note');
+  const [page,setPage]=useState(0);
+  const q=useQuery({queryKey:['direct-inbox',page],queryFn:()=>profileAPI.inbox(page*20),enabled:!id});
+  if(id) return <NoteDetail key={id} id={id} close={()=>setParams({tab:'inbox'})} />;
   return <Card><h3>받은 쪽지</h3>
     {!q.data && <p>{q.isError?errorMessage(q.error):'쪽지를 불러오는 중이에요.'}</p>}
     {q.data?.notes.length===0 && <p>받은 쪽지가 없어요.</p>}
-    {q.data?.notes.map(n=><article key={n.id} style={{borderBottom:'1px solid #ddd',padding:'1rem 0'}}>
-      <Link to={`/profile/${n.sender_id}`}>{n.nickname}</Link> · {timeAgo(n.created_at)}
-      <p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{n.body}</p>
-      {n.reported ? <span>신고 접수됨</span> : <Button onClick={()=>{setTarget(target===n.id?'':n.id);setReason('');}}>신고</Button>}
-      {!n.reported && target===n.id && <form onSubmit={async e=>{e.preventDefault();if(busy)return;setBusy(true);try{await profileAPI.report(n.id,reason);setTarget('');await q.refetch();toast.success('신고를 접수했어요.');}catch(e){toast.error(errorMessage(e));}finally{setBusy(false);}}}>
-        <label>신고 이유 <input value={reason} onChange={e=>setReason(e.target.value)} maxLength={250} required /></label> <Button type="submit" disabled={busy || !reason.trim()}>신고 접수</Button></form>}
-    </article>)}
-    <Button disabled={!page} onClick={()=>setPage(page-1)}>이전</Button> {page+1} <Button disabled={!q.data?.more} onClick={()=>setPage(page+1)}>다음</Button>
+    <ul style={{display:'grid',gap:'.65rem'}}>{q.data?.notes.map(n=><li key={n.id} style={{margin:0}}>
+      <Link to={`/me?tab=inbox&note=${n.id}`} aria-label={`${n.nickname}님의 쪽지 열기`} style={{display:'block',border:'1px solid #d8decb',borderRadius:12,padding:'.85rem 1rem',background:'#fbfcf8'}}>{n.nickname}</Link>
+    </li>)}</ul>
+    {(page>0 || q.data?.more) && <nav aria-label="쪽지 목록 페이지" style={{display:'flex',gap:'.8rem',alignItems:'center'}}><Button disabled={!page} onClick={()=>setPage(page-1)}>이전</Button> {page+1} <Button disabled={!q.data?.more} onClick={()=>setPage(page+1)}>다음</Button></nav>}
+  </Card>;
+}
+function NoteDetail({id,close}: {id:string;close:()=>void}) {
+  const [reporting,setReporting]=useState(false), [reason,setReason]=useState(''), [busy,setBusy]=useState(false);
+  const q=useQuery({queryKey:['direct-detail',id],queryFn:()=>profileAPI.noteDetail(id)});
+  const n=q.data;
+  return <Card>
+    <Button $variant="sand" onClick={close}>← 쪽지 목록</Button>
+    {!n && <p>{q.isError?errorMessage(q.error):'쪽지를 여는 중이에요.'}</p>}
+    {n && <>
+      <h3>{n.nickname}님의 쪽지</h3>
+      <p style={{color:'#686355'}}>{timeAgo(n.created_at)}</p>
+      <p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',padding:'1rem',borderRadius:12,background:'#f7f8f2'}}>{n.body}</p>
+      <div style={{marginBlockStart:'1.5rem'}}>{n.reported ? <span>신고 접수됨</span> : <Button $variant="sand" onClick={()=>setReporting(!reporting)}>{reporting?'취소':'신고'}</Button>}</div>
+      {!n.reported && reporting && <form onSubmit={async e=>{e.preventDefault();if(busy)return;setBusy(true);try{await profileAPI.report(n.id,reason);setReporting(false);await q.refetch();toast.success('신고를 접수했어요.');}catch(e){toast.error(errorMessage(e));}finally{setBusy(false);}}}>
+        <label>신고 이유 <Textarea style={{display:'block',minHeight:88}} value={reason} onChange={e=>setReason(e.target.value)} maxLength={250} required /></label>
+        <Button type="submit" disabled={busy || !reason.trim()}>신고 접수</Button>
+      </form>}
+    </>}
   </Card>;
 }
