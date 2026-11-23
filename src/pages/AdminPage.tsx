@@ -16,6 +16,8 @@ import { REPORT_ACTIONS } from '../types';
 import type { IdentityView, ProcessStatus, ReportAction } from '../types';
 import { color } from '../styles/theme';
 
+const REPORTS_PER_PAGE = 3;
+
 const STATUS_LABEL: Record<ProcessStatus, string> = { pending: '미확인', reviewing: '검토 중', done: '처리 완료' };
 const STATUS_COLOR: Record<ProcessStatus, string> = { pending: color.pink, reviewing: color.sand, done: color.greenSoft };
 
@@ -75,7 +77,12 @@ export default function AdminPage() {
   const { data: me } = useMe();
   const [restrictId, setRestrictId] = useState<string | null>(null); // [추가] 이용 제한 기간을 고르는 신고
   const [identityView, setIdentityView] = useState<IdentityView | null>(null); // [추가] 위기 알림 작성자 개인정보
-  const [filter, setFilter] = useState<'all' | 'alerts' | 'reports' | 'reviewing' | 'done'>('all');
+  const [filter, setStatusFilter] = useState<'all' | 'alerts' | 'reports' | 'reviewing' | 'done'>('all');
+  const [reportPage, setReportPage] = useState(1);
+  const setFilter = (next: typeof filter) => {
+    setStatusFilter(next);
+    setReportPage(1);
+  };
   const [historyId, setHistoryId] = useState<string | null>(null);
   const [decision, setDecision] = useState<{ id: string; action: ReportAction } | null>(null);
   const history = useQuery({ queryKey: ['moderation-history', historyId], queryFn: () => adminAPI.reportHistory(historyId!), enabled: !!historyId });
@@ -119,6 +126,11 @@ export default function AdminPage() {
 
   const shownAlerts = alertList.filter((a) => filter === 'all' || (filter === 'alerts' ? a.status === 'pending' : a.status === filter));
   const shownReports = reportList.filter((r) => filter === 'all' || (filter === 'reports' ? r.status === 'pending' : r.status === filter));
+  const reportPageCount = Math.max(1, Math.ceil(shownReports.length / REPORTS_PER_PAGE));
+  const activeReportPage = Math.min(reportPage, reportPageCount);
+  const pageReports = shownReports.slice((activeReportPage - 1) * REPORTS_PER_PAGE, activeReportPage * REPORTS_PER_PAGE);
+  const pageNumbers = Array.from(new Set([1, activeReportPage - 1, activeReportPage, activeReportPage + 1, reportPageCount]))
+    .filter((n) => n >= 1 && n <= reportPageCount).sort((a, b) => a - b);
   const period = (days: number) => days === 0 ? '영구' : days === 30 ? '1달 (30일)' : days === 90 ? '3달 (90일)' : `${days}일`;
 
   return (
@@ -183,7 +195,7 @@ export default function AdminPage() {
         <Card>
           <h3>신고 목록</h3>
           {shownReports.length === 0 && <Muted style={{ marginTop: '0.6rem' }}>이 상태의 신고가 없어요.</Muted>}
-          {shownReports.map((r) => (
+          {pageReports.map((r) => (
             <Item key={r.id}>
               <div className="top">
                 <span>{r.targetType === 'post' ? '글' : '댓글'} · {r.reason}<br /><Muted as="span">“{r.targetPreview}”{r.detail ? ` — ${r.detail}` : ''}</Muted></span>
@@ -192,9 +204,13 @@ export default function AdminPage() {
               {r.targetDeleted ? <Muted as="div">신고 대상 삭제됨 · 복구 불가</Muted> : r.targetType === 'post' && <Link to={`/post/${r.targetId}`}>신고 대상 글 보기</Link>}
               {r.action && <Muted as="div">최근 결정: {r.action}{r.days != null ? ` · ${period(r.days)}` : ''}{r.stopped ? ' · 게시 중단' : ''}</Muted>}
               <div className="actions">
-                {r.status !== 'reviewing' && <Button $variant="sand" onClick={() => run(() => adminAPI.setReportStatus(r.id, 'reviewing'))}>{r.status === 'done' ? '다시 검토' : '검토 시작'}</Button>}
-                {REPORT_ACTIONS.filter((act) => !(r.targetDeleted && act === '경고 및 삭제')).map((act) => (
-                  <Button key={act} $variant="ghost" onClick={() => chooseDecision(r.id, act, !!r.action)}>{act === '경고 및 삭제' ? '경고 및 게시 중단' : act}</Button>
+                <Button $variant="sand" disabled={r.status === 'reviewing'} onClick={() => run(async () => {
+                  await adminAPI.setReportStatus(r.id, 'reviewing');
+                  if (filter !== 'all') setFilter('reviewing');
+                })}>{r.status === 'reviewing' ? '검토 중' : r.status === 'done' ? '다시 검토' : '검토 시작'}</Button>
+                {REPORT_ACTIONS.map((act) => (
+                  <Button key={act} $variant="ghost"
+                    onClick={() => chooseDecision(r.id, act, !!r.action)}>{act}</Button>
                 ))}
                 <Button $variant="sand" onClick={() => setHistoryId(historyId === r.id ? null : r.id)}>조치 이력</Button>
               </div>
@@ -207,6 +223,15 @@ export default function AdminPage() {
               </div>}
             </Item>
           ))}
+          {reportPageCount > 1 && <nav aria-label="신고 목록 페이지" style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+            <Button type="button" $variant="sand" disabled={activeReportPage === 1} onClick={() => setReportPage(activeReportPage - 1)}>이전</Button>
+            {pageNumbers.map((n, index) => <span key={n}>
+              {index > 0 && n - pageNumbers[index - 1] > 1 && <span aria-hidden="true">… </span>}
+              <Button type="button" aria-current={n === activeReportPage ? 'page' : undefined}
+                aria-label={`${n}페이지`} $variant={n === activeReportPage ? 'primary' : 'sand'} onClick={() => setReportPage(n)}>{n}</Button>
+            </span>)}
+            <Button type="button" $variant="sand" disabled={activeReportPage === reportPageCount} onClick={() => setReportPage(activeReportPage + 1)}>다음</Button>
+          </nav>}
         </Card>
       </Two>
 
@@ -219,12 +244,12 @@ export default function AdminPage() {
 
       {adminModal && <CreateAdminModal onClose={() => setAdminModal(false)} />}
       {identityView && <IdentityModal view={identityView} onClose={() => setIdentityView(null)} />}
-      {decision && <ConfirmModal title={decision.action === '경고 및 삭제' ? '경고 및 게시 중단' : decision.action} confirmLabel="결정 적용"
-        message={decision.action === '문제 없음' ? '이 신고의 되돌릴 수 있는 조치를 해제합니다. 삭제된 글이나 댓글은 복구되지 않으며, 다른 신고의 조치는 유지됩니다.' : '작성자에게 경고하고 신고 대상만 삭제합니다. 글을 삭제하면 해당 글의 댓글과 공감도 함께 삭제됩니다. 삭제는 취소할 수 없으며, 연결된 보상만 회수합니다. 새 이용 제한은 걸지 않습니다.'}
+      {decision && <ConfirmModal title={decision.action} confirmLabel="결정 적용"
+        message={decision.action === '문제 없음' ? '이 신고의 되돌릴 수 있는 조치를 해제합니다. 삭제된 글이나 댓글은 복구되지 않으며, 다른 신고의 조치는 유지됩니다.' : '신고 대상을 숨기고 연결된 나뭇잎을 회수합니다. 이미 숨겨지거나 삭제된 대상은 추가 경고나 회수 없이 이 신고만 처리합니다.'}
         onClose={() => setDecision(null)} onConfirm={() => {
           const { id, action } = decision;
           setDecision(null);
-          void run(async () => { await adminAPI.resolveReport(id, action); toast.success(action === '문제 없음' ? '문제 없음으로 처리했어요' : '경고 및 삭제를 완료했어요'); });
+          void run(async () => { await adminAPI.resolveReport(id, action); toast.success(action === '문제 없음' ? '문제 없음으로 처리했어요' : '신고를 처리 완료했어요'); });
         }} />}
       {restrictId && (
         <RestrictModal
