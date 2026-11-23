@@ -163,6 +163,8 @@ export const postAPI = {
   // 위기 키워드는 서버가 직접 세므로 두 번째 값은 참고용이에요.
   create: (input: { category: Category; title: string; content: string }, keywordCount = 0) =>
     rpc<PostView>('post.create', input, keywordCount),
+  update: (id: string, input: { category: Category; title: string; content: string }) =>
+    rpc<PostView>('post.update', id, input),
   toggleLike: (id: string) => rpc<void>('post.toggleLike', id),
   setPinned: (id: string, pinned: boolean) => rpc<void>('post.setPinned', id, pinned),
   setPrivate: (id: string, isPrivate: boolean) => rpc<void>('post.setPrivate', id, isPrivate),

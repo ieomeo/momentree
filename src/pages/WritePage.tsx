@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import styled from '@emotion/styled';
 import CrisisModal from '../components/CrisisModal';
@@ -12,7 +12,7 @@ import { countCrisisKeywords } from '../services/crisis';
 import { errorMessage } from '../services/format';
 import { load, save } from '../services/storage';
 import { ALL_CATEGORIES, CATEGORIES, NOTICE_CATEGORY } from '../types';
-import type { Category } from '../types';
+import type { Category, PostView } from '../types';
 import { color } from '../styles/theme';
 
 interface WriteForm {
@@ -45,30 +45,45 @@ const Actions = styled.div`
 `;
 
 export default function WritePage() {
+  const { id } = useParams();
+  const { data: me } = useMe();
+  const post = useQuery({ queryKey: ['post', id], queryFn: () => postAPI.get(id!), enabled: !!id });
+  if (!id) return <PostForm key="new" />;
+  if (post.isPending) return <p>글을 불러오는 중이에요.</p>;
+  if (post.isError) return <p>{errorMessage(post.error)}</p>;
+  if (post.data.authorId !== me?.id) return <p>자신이 쓴 글만 수정할 수 있어요.</p>;
+  return <PostForm key={id} existing={post.data} />;
+}
+
+function PostForm({ existing }: { existing?: PostView }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: me } = useMe();
   const isAdmin = me?.role === 'admin';
   const { register, handleSubmit, getValues, watch, formState: { errors, isSubmitting } } = useForm<WriteForm>({
-    defaultValues: { ...EMPTY_FORM, ...load<Partial<WriteForm>>(DRAFT_KEY, {}) },
+    defaultValues: existing ? { category: existing.category, title: existing.title, content: existing.content }
+      : { ...EMPTY_FORM, ...load<Partial<WriteForm>>(DRAFT_KEY, {}) },
   });
   // 공지글 카테고리는 운영자에게만 보입니다.
-  const categories: readonly Category[] = isAdmin ? ALL_CATEGORIES : CATEGORIES;
+  const categories: readonly Category[] = existing ? (existing.category === NOTICE_CATEGORY ? [NOTICE_CATEGORY] : CATEGORIES)
+    : isAdmin ? ALL_CATEGORIES : CATEGORIES;
   const [crisis, setCrisis] = useState<{ values: WriteForm; count: number } | null>(null);
 
+  const [saving, setSaving] = useState(false);
   const publish = async (values: WriteForm, keywordCount: number) => {
-    if (values.category === '') return;
+    if (values.category === '' || saving) return;
+    setSaving(true);
     try {
-      const post = await postAPI.create(
-        { category: values.category, title: values.title.trim(), content: values.content.trim() },
-        keywordCount,
-      );
-      localStorage.removeItem(DRAFT_KEY);
+      const input = { category: values.category, title: values.title.trim(), content: values.content.trim() };
+      const post = existing ? await postAPI.update(existing.id, input) : await postAPI.create(input, keywordCount);
+      if (!existing) localStorage.removeItem(DRAFT_KEY);
       await qc.invalidateQueries();
-      toast.success(values.category === NOTICE_CATEGORY ? '공지글이 등록됐어요 📌' : '글이 등록됐어요 🌿');
+      toast.success(existing ? '글을 수정했어요 🌿' : values.category === NOTICE_CATEGORY ? '공지글이 등록됐어요 📌' : '글이 등록됐어요 🌿');
       navigate(`/post/${post.id}`);
     } catch (e) {
       toast.error(errorMessage(e));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -88,6 +103,7 @@ export default function WritePage() {
 
   return (
     <Wrap onSubmit={handleSubmit(onSubmit)} noValidate>
+      {existing && <h2>글 수정</h2>}
       <Field>
         <Select {...register('category', { required: '카테고리를 선택해주세요' })}>
           <option value="">카테고리 선택</option>
@@ -113,8 +129,10 @@ export default function WritePage() {
       </Field>
       <Guide>서로의 마음을 읽어주는 공간이에요. 구체적인 방법·수단 묘사는 올릴 수 없어요.</Guide>
       <Actions>
-        <Button type="button" $variant="pink" onClick={saveDraft}>임시저장</Button>
-        <Button type="submit" disabled={isSubmitting}>등록하기</Button>
+        {existing
+          ? <Button type="button" $variant="sand" disabled={saving} onClick={() => navigate(`/post/${existing.id}`)}>취소</Button>
+          : <Button type="button" $variant="pink" onClick={saveDraft}>임시저장</Button>}
+        <Button type="submit" disabled={isSubmitting || saving}>{existing ? '수정 저장' : '등록하기'}</Button>
       </Actions>
 
       {crisis && (

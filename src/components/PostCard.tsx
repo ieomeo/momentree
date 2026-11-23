@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import styled from '@emotion/styled';
@@ -74,6 +74,7 @@ interface Props {
 }
 
 export default function PostCard({ post, menu }: Props) {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const isNotice = post.category === '공지글';
@@ -92,6 +93,7 @@ export default function PostCard({ post, menu }: Props) {
   const items: MenuItem[] =
     menu === 'owner'
       ? [
+          { label: '수정', onClick: () => navigate(`/post/${post.id}/edit`) },
           {
             label: post.isPrivate ? '공개로 전환' : '비공개',
             onClick: () =>

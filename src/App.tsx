@@ -33,6 +33,7 @@ function App() {
           <Route element={<RequireAuth />}>
             <Route path="/feed" element={<FeedPage />} />
             <Route path="/write" element={<WritePage />} />
+            <Route path="/post/:id/edit" element={<WritePage />} />
             <Route path="/post/:id" element={<PostDetailPage />} />
             <Route path="/me" element={<GardenPage />} />
           </Route>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import styled from '@emotion/styled';
@@ -93,6 +93,7 @@ const CommentRow = styled.div`
 const smallButton = { padding: '0.2rem 0.65rem', fontSize: '0.8rem' } as const;
 
 export default function PostDetailPage() {
+  const navigate = useNavigate();
   const { id = '' } = useParams();
   const qc = useQueryClient();
   const { data: me } = useMe();
@@ -136,6 +137,7 @@ export default function PostDetailPage() {
           {isNotice ? <NoticeBadge>공지글</NoticeBadge> : <Tag $bg={categoryColor(p.category)}>{p.category}</Tag>}
           {p.pinned && <PinnedMark><FaThumbtack /> 고정됨</PinnedMark>}
           {p.isPrivate && <PrivateMark><FaLock /> 비공개</PrivateMark>}
+          {isMine && <Button $variant="sand" style={smallButton} onClick={() => navigate(`/post/${id}/edit`)}>수정</Button>}
           {isAdmin && (
             <Button
               $variant="sand"
