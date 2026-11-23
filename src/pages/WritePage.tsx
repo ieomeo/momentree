@@ -149,7 +149,7 @@ function PostForm({ existing, userId }: { existing?: PostView; userId: string })
         {errors.content && <ErrorText>{errors.content.message}</ErrorText>}
       </Field>
       <Guide>서로의 마음을 읽어주는 공간이에요. 구체적인 방법·수단 묘사는 올릴 수 없어요.</Guide>
-      <p role="status">{draftStatus || (restored ? '이 브라우저에서 마지막으로 쓰던 글을 불러왔어요.' : '작성 중인 글은 이 브라우저에만 자동 저장돼요.')}</p>
+      <p role="status" style={{marginBottom: '0.85rem'}}>{draftStatus || (restored ? '이 브라우저에서 마지막으로 쓰던 글을 불러왔어요.' : '작성 중인 글은 이 브라우저에만 자동 저장돼요.')}</p>
       <Actions>
         {existing && <Button type="button" $variant="sand" disabled={saving} onClick={() => navigate(`/post/${existing.id}`)}>나가기</Button>}
         <Button type="button" $variant="sand" disabled={saving} onClick={discardDraft}>초안 지우기</Button>

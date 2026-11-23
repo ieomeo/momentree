@@ -24,16 +24,17 @@ const STATUS_COLOR: Record<ProcessStatus, string> = { pending: color.pink, revie
 const TitleRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.7rem;
-  margin-bottom: 1rem;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
 `;
 
 const Stats = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
   margin-bottom: 1.2rem;
-  @media (max-width: 760px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 760px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 `;
 
 const Stat = styled.button<{ $bg: string }>`
@@ -42,7 +43,8 @@ const Stat = styled.button<{ $bg: string }>`
   &[aria-pressed=true] { border-color: currentColor; }
   background: ${({ $bg }) => $bg};
   border-radius: 12px;
-  padding: 1rem 1.2rem;
+  padding: clamp(0.75rem, 3vw, 1.2rem);
+  overflow-wrap: anywhere;
   .num { font-size: 2.2rem; font-weight: 800; }
 `;
 
@@ -154,7 +156,7 @@ export default function AdminPage() {
       </Stats>
       <Button type="button" $variant="sand" onClick={() => setFilter('all')}>전체 보기</Button>
 
-      <Two>
+      <Two style={{marginTop: '1rem'}}>
         <Card>
           <h3>위기 알림</h3>
           {shownAlerts.length === 0 && <Muted style={{ marginTop: '0.6rem' }}>이 상태의 위기 알림이 없어요.</Muted>}

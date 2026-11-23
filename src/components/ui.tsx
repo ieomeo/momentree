@@ -42,7 +42,11 @@ export const Card = styled.section`
   background: white;
   border: 1.5px solid ${color.border};
   border-radius: 12px;
-  padding: 1.1rem 1.3rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  > * + * { margin-block-start: 0.75rem; }
+  > form > * + * { margin-block-start: 0.65rem; }
+  > form label > :is(input, textarea, select) { margin-block-start: 0.35rem; }
+  > ul > li + li { margin-block-start: 0.45rem; }
 `;
 
 export const Tag = styled.span<{ $bg: string }>`

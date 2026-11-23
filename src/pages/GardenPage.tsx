@@ -263,7 +263,7 @@ export default function GardenPage() {
       </Profile>
 
       <section>
-        {tab === 'profile' && <GardenProfile />}
+        {tab === 'profile' && <GardenProfile fixedGrowth={superAdmin} />}
         {tab === 'inbox' && <GardenInbox />}
         {tab === 'leaves' && (
           <>
