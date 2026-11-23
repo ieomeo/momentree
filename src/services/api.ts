@@ -218,7 +218,8 @@ export const adminAPI = {
   alerts: () => rpc<CrisisAlert[]>('admin.alerts'),
   setReportStatus: (id: string, status: ProcessStatus) => rpc<void>('admin.setReportStatus', id, status),
   // 이용 제한은 기간(1·3·7·30일, 0=영구)을 함께 보내요.
-  resolveReport: (id: string, action: ReportAction, days?: number) => rpc<void>('admin.resolveReport', id, action, days),
+  resolveReport: (id: string, action: ReportAction, days?: number, stop = false) => rpc<void>('admin.resolveReport', id, action, days, stop),
+  reportHistory: (id: string) => rpc<{ id: string; action: string; stopped: boolean; days: number | null; leafDelta: number; createdAt: string }[]>('admin.reportHistory', id),
   liftRestriction: (reportId: string) => rpc<void>('admin.liftRestriction', reportId),
   setAlertStatus: (id: string, status: ProcessStatus) => rpc<void>('admin.setAlertStatus', id, status),
   sendCareNotice: (alertId: string) => rpc<void>('admin.sendCareNotice', alertId),

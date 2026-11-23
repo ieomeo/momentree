@@ -13,7 +13,7 @@ export const REPORT_REASONS = [
 ] as const;
 export type ReportReason = (typeof REPORT_REASONS)[number];
 
-export const REPORT_ACTIONS = ['문제 없음', '경고', '게시 중단', '이용 제한'] as const;
+export const REPORT_ACTIONS = ['문제 없음', '경고 및 게시 중단', '이용 제한'] as const;
 export type ReportAction = (typeof REPORT_ACTIONS)[number];
 
 // pending: 미확인/대기, reviewing: 검토 중, done: 처리 완료
@@ -67,6 +67,8 @@ export interface Comment {
 }
 
 export interface Report {
+  stopped?: boolean;
+  days?: number | null;
   id: string;
   targetType: 'post' | 'comment';
   targetId: string;

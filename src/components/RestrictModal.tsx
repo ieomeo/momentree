@@ -6,7 +6,8 @@ const OPTIONS: { days: number; label: string }[] = [
   { days: 1, label: '1일' },
   { days: 3, label: '3일' },
   { days: 7, label: '7일' },
-  { days: 30, label: '30일' },
+  { days: 30, label: '1달 (30일)' },
+  { days: 90, label: '3달 (90일)' },
   { days: 0, label: '영구' },
 ];
 
@@ -26,8 +27,9 @@ const Actions = styled.div`
 `;
 
 // 이용 제한 기간을 고르는 창. 제한 중에는 글쓰기·댓글·공감·구독·신고를 할 수 없어요.
-export default function RestrictModal({ onConfirm, onClose }: { onConfirm: (days: number) => void; onClose: () => void }) {
-  const [days, setDays] = useState(7);
+export default function RestrictModal({ onConfirm, onClose, initialDays, initialStop }: { initialDays?: number; initialStop?: boolean; onConfirm: (days: number, stop: boolean) => void; onClose: () => void }) {
+  const [days, setDays] = useState(initialDays ?? 7);
+  const [stop, setStop] = useState(initialStop ?? false);
   return (
     <Modal onClose={onClose}>
       <h3>이용 제한 기간</h3>
@@ -40,9 +42,10 @@ export default function RestrictModal({ onConfirm, onClose }: { onConfirm: (days
           {o.label}
         </Radio>
       ))}
+      <Radio><input type="checkbox" checked={stop} onChange={(e) => setStop(e.target.checked)} /> 문제 글·댓글도 경고 후 게시 중단</Radio>
       <Actions>
         <Button $variant="sand" onClick={onClose}>취소</Button>
-        <Button onClick={() => onConfirm(days)}>이용 제한하기</Button>
+        <Button onClick={() => onConfirm(days, stop)}>이용 제한하기</Button>
       </Actions>
     </Modal>
   );
