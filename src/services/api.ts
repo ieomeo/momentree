@@ -154,7 +154,7 @@ export const authAPI = {
 
 // ---------- 글 ----------
 export const postAPI = {
-  list: (category: Category | '전체' = '전체', sort: 'latest' | 'likes' = 'latest') =>
+  list: (category: Category | '전체' = '전체', sort: 'latest' | 'likes' | 'newcomers' = 'latest') =>
     rpc<PostView[]>('post.list', category, sort),
   search: (query: string) => rpc<PostView[]>('post.search', query),
   mine: () => rpc<PostView[]>('post.mine'),

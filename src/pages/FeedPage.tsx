@@ -106,7 +106,7 @@ const PillButton = styled.button`
 export default function FeedPage() {
   const { data: me } = useMe();
   const [category, setCategory] = useState<Category | '전체'>('전체');
-  const [sort, setSort] = useState<'latest' | 'likes'>('latest');
+  const [sort, setSort] = useState<'latest' | 'likes' | 'newcomers'>('latest');
   const [searchText, setSearchText] = useState(''); // [추가] 입력 중인 검색어
   const [query, setQuery] = useState(''); // [추가] 실제로 검색한 키워드
   const [legal, setLegal] = useState<'promise' | 'policy' | null>(null); // [추가] 약속·운영자 조치 기준 전문
@@ -131,7 +131,9 @@ export default function FeedPage() {
     ? `‘${query}’와(과) 관련된 글을 찾지 못했어요.`
     : sort === 'likes'
       ? `최근 ${LIKES_WINDOW_HOURS}시간 안에 올라온 글이 없어요.`
-      : '아직 글이 없어요. 첫 글을 남겨보세요.';
+      : sort === 'newcomers'
+        ? '이 카테고리에 공개된 첫 글이 아직 없어요.'
+        : '아직 글이 없어요. 첫 글을 남겨보세요.';
 
   return (
     <Layout>
@@ -172,7 +174,11 @@ export default function FeedPage() {
             <Tabs>
               <Chip $active={sort === 'latest'} onClick={() => setSort('latest')}>최신순</Chip>
               <Chip $active={sort === 'likes'} onClick={() => setSort('likes')}>공감순</Chip>
+              <Chip $active={sort === 'newcomers'} onClick={() => setSort('newcomers')}>신규</Chip>
             </Tabs>
+            {sort === 'newcomers' && (
+              <Muted style={{ marginBottom: '0.8rem' }}>회원마다 가입 후 처음 쓴 글 한 편만 보여요.</Muted>
+            )}
             {sort === 'likes' && (
               <Muted style={{ marginBottom: '0.8rem' }}>
                 공감순은 최근 {LIKES_WINDOW_HOURS}시간 안에 올라온 글만 보여요. (공지·고정글은 항상 맨 위)
