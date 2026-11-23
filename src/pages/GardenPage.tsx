@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import styled from '@emotion/styled';
 import { FaCamera } from 'react-icons/fa';
+import { GardenInbox, GardenProfile } from '../components/GardenExtras';
 import AdminManageModal from '../components/AdminManageModal';
 import PostCard from '../components/PostCard';
 import WithdrawModal from '../components/WithdrawModal';
@@ -18,8 +19,10 @@ import { errorMessage, timeAgo, todayKey } from '../services/format';
 import { fileToAvatar } from '../services/image';
 import { color } from '../styles/theme';
 
-type Tab = 'posts' | 'subs' | 'leaves' | 'blocks' | 'settings';
+type Tab = 'profile' | 'inbox' | 'posts' | 'subs' | 'leaves' | 'blocks' | 'settings';
 const TABS: { key: Tab; label: string }[] = [
+  { key: 'profile', label: '프로필' },
+  { key: 'inbox', label: '쪽지' },
   { key: 'posts', label: '내 글' },
   { key: 'subs', label: '구독 중' },
   { key: 'leaves', label: '나뭇잎' },
@@ -151,7 +154,7 @@ export default function GardenPage() {
   const { data: me } = useMe();
   // [추가] 탭은 주소(?tab=...)로 정해요. 없으면 '내 글'이 먼저 열려요.
   const [params, setParams] = useSearchParams();
-  const tab: Tab = TABS.find((t) => t.key === params.get('tab'))?.key ?? 'posts';
+  const tab: Tab = TABS.find((t) => t.key === params.get('tab'))?.key ?? 'profile';
   const setTab = (next: Tab) => setParams({ tab: next }, { replace: true });
   const [nick, setNick] = useState('');
   const [withdrawOpen, setWithdrawOpen] = useState(false);
@@ -260,13 +263,15 @@ export default function GardenPage() {
       </Profile>
 
       <section>
+        {tab === 'profile' && <GardenProfile />}
+        {tab === 'inbox' && <GardenInbox />}
         {tab === 'leaves' && (
           <>
             <Summary>
               <img src="/logo-symbol.png" alt="" aria-hidden="true" />
               <div>
                 <Muted>보유 나뭇잎</Muted>
-                <div className="big">{me.leaves}</div>
+                <div className="big">{me.isSuperAdmin ? '∞' : me.leaves}</div>
               </div>
               <div className="cap">
                 <Muted>오늘 적립 {earnedToday} / {DAILY_CAP} (일일 상한)</Muted>

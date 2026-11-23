@@ -181,7 +181,7 @@ export default function FeedPage() {
             )}
             {sort === 'likes' && (
               <Muted style={{ marginBottom: '0.8rem' }}>
-                공감순은 최근 {LIKES_WINDOW_HOURS}시간 안에 올라온 글만 보여요. (공지·고정글은 항상 맨 위)
+                공감순은 최근 {LIKES_WINDOW_HOURS}시간 안에 올라온 글을 보여요. 전체 피드에서는 최신 공지 1건이 맨 위에 표시되고, 고정글은 시간 제한 없이 표시돼요.
               </Muted>
             )}
           </>

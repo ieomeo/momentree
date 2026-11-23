@@ -237,3 +237,12 @@ export const noteAPI = {
   today: () => rpc<string>('note.today', localDateKey()),
   saveToday: (text: string) => rpc<void>('note.save', text, localDateKey()),
 };
+
+export const profileAPI = {
+  get: (id: string, offset: number) => rpc<{ nickname: string; avatar: string | null; bio: string; own: boolean; more: boolean; posts: {id: string; title: string; category: string; created_at: string}[] }>('profile.get', id, offset),
+  garden: () => rpc<{bio: string; total: number}>('profile.garden'),
+  save: (bio: string) => rpc<void>('profile.saveBio', bio),
+  send: (id: string, body: string) => rpc<void>('direct.send', id, body),
+  inbox: (offset: number) => rpc<{more: boolean; notes: {id: string; sender_id: string; nickname: string; body: string; created_at: string; reported: boolean}[]}>('direct.inbox', offset),
+  report: (id: string, reason: string) => rpc<void>('direct.report', id, reason),
+};

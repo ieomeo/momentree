@@ -39,6 +39,7 @@ export interface User {
 export interface Post {
   id: string;
   authorId: string;
+  authorAvatar?: string;
   nickname: string;
   category: Category;
   title: string;
@@ -71,7 +72,7 @@ export interface Report {
   stopped?: boolean;
   days?: number | null;
   id: string;
-  targetType: 'post' | 'comment';
+  targetType: 'post' | 'comment' | 'note';
   targetId: string;
   targetPreview: string;
   reason: ReportReason;

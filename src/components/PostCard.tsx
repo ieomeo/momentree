@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import styled from '@emotion/styled';
 import { FaHeart, FaLock, FaThumbtack } from 'react-icons/fa';
+import AuthorProfile from './AuthorProfile';
 import ConfirmModal from './ConfirmModal';
 import LeafIcon from './LeafIcon';
 import PostMenu from './PostMenu';
@@ -18,7 +19,7 @@ const Wrap = styled.div`
   position: relative;
 `;
 
-const Card = styled(Link)`
+const Card = styled.article`
   display: block;
   background: white;
   border: 1.5px solid ${color.border};
@@ -111,20 +112,21 @@ export default function PostCard({ post, menu }: Props) {
   return (
     <Wrap>
       <Card
-        to={`/post/${post.id}`}
         data-notice={isNotice ? 'true' : undefined}
         data-pinned={post.pinned ? 'true' : undefined}
         data-menu={menu ? 'true' : undefined}
       >
+        <Link to={`/post/${post.id}`}>
         <div className="head">
           {post.pinned && <Pin title="고정된 글" aria-label="고정된 글" />}
           {isNotice ? <NoticeBadge>공지글</NoticeBadge> : <Tag $bg={categoryColor(post.category)}>{post.category}</Tag>}
           <h3>{post.title}</h3>
         </div>
         <p className="preview">{post.content}</p>
+        </Link>
         <div className="meta">
           <span className="name">
-            {post.nickname}
+            <AuthorProfile id={post.authorId} nickname={post.nickname} avatar={post.authorAvatar} />
             {post.authorIsAdmin && (
               <span title="운영자" style={{ display: 'inline-flex' }}><LeafIcon size={14} /></span>
             )}

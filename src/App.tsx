@@ -11,6 +11,7 @@ import SignupPage from './pages/SignupPage';
 import FeedPage from './pages/FeedPage';
 import WritePage from './pages/WritePage';
 import PostDetailPage from './pages/PostDetailPage';
+import ProfilePage from './pages/ProfilePage';
 import GardenPage from './pages/GardenPage';
 import AdminPage from './pages/AdminPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -35,6 +36,7 @@ function App() {
             <Route path="/write" element={<WritePage />} />
             <Route path="/post/:id/edit" element={<WritePage />} />
             <Route path="/post/:id" element={<PostDetailPage />} />
+            <Route path="/profile/:id" element={<ProfilePage />} />
             <Route path="/me" element={<GardenPage />} />
           </Route>
           <Route element={<RequireAuth admin />}>

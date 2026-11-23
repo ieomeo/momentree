@@ -198,7 +198,7 @@ export default function AdminPage() {
           {pageReports.map((r) => (
             <Item key={r.id}>
               <div className="top">
-                <span>{r.targetType === 'post' ? '글' : '댓글'} · {r.reason}<br /><Muted as="span">“{r.targetPreview}”{r.detail ? ` — ${r.detail}` : ''}</Muted></span>
+                <span>{r.targetType === 'post' ? '글' : r.targetType === 'note' ? '쪽지' : '댓글'} · {r.reason}<br /><Muted as="span">“{r.targetPreview}”{r.detail ? ` — ${r.detail}` : ''}</Muted></span>
                 <Badge $bg={STATUS_COLOR[r.status]}>{r.action ?? STATUS_LABEL[r.status]}</Badge>
               </div>
               {r.targetDeleted ? <Muted as="div">신고 대상 삭제됨 · 복구 불가</Muted> : r.targetType === 'post' && <Link to={`/post/${r.targetId}`}>신고 대상 글 보기</Link>}

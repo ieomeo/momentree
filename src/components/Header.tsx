@@ -83,7 +83,7 @@ export default function Header({ me }: { me: User }) {
           {/* [추가] 알림 종: 새 알림이 있으면 빨간 점 */}
           <NotificationBell />
           <Leaves to="/me?tab=leaves" title="나의 정원에서 나뭇잎 보기">
-            <LeafIcon size={20} /> {me.leaves}
+            <LeafIcon size={20} /> {me.isSuperAdmin ? '∞' : me.leaves}
           </Leaves>
           <Button $variant="sand" disabled={linking} onClick={() => void linkNaver()}>네이버 연결</Button>
           <Button $variant="sand" onClick={logout}>로그아웃</Button>

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import styled from '@emotion/styled';
 import { FaHeart, FaLock, FaThumbtack } from 'react-icons/fa';
+import AuthorProfile from '../components/AuthorProfile';
 import BlockModal from '../components/BlockModal';
 import LeafIcon from '../components/LeafIcon';
 import ReportModal from '../components/ReportModal';
@@ -152,7 +153,7 @@ export default function PostDetailPage() {
         <Head>
           <h2>{p.title}</h2>
           <Muted as="span" className="name">
-            {p.nickname}
+            <AuthorProfile id={p.authorId} nickname={p.nickname} avatar={p.authorAvatar} />
             {p.authorIsAdmin && <span title="운영자" style={{ display: 'inline-flex' }}><LeafIcon size={16} /></span>}
             · {timeAgo(p.createdAt)}
           </Muted>
@@ -167,7 +168,7 @@ export default function PostDetailPage() {
             <Button
               $variant="sand"
               disabled={subscribed}
-              title={`나뭇잎 ${SUBSCRIBE_COST}개로 구독`}
+              title={me.isSuperAdmin ? '차감 없이 구독' : `나뭇잎 ${SUBSCRIBE_COST}개로 구독`}
               onClick={() => run(() => socialAPI.subscribe(p.authorId), '구독했어요')}
             >
               {subscribed ? '구독 중' : '구독'}
