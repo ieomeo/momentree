@@ -20,12 +20,12 @@ export function GardenProfile({ fixedGrowth }: { fixedGrowth: boolean }) {
       <label>자기소개 (최대 500자 · 다른 회원에게 공개)<Textarea style={{display:'block',minHeight:104}} maxLength={500} value={draft??bio} onChange={e=>setDraft(e.target.value)} /></label>
       <Button disabled={busy || draft===null} type="submit">저장</Button>
     </form>
-    {index === 14 ? (
+    {index >= 11 ? (
       <figure style={{position:'relative', isolation:'isolate', overflow:'hidden', borderRadius:18, marginBlockStart:'1.6rem', minHeight:'clamp(240px, 48vw, 490px)', display:'flex', alignItems:'flex-end', background:'#403522'}}>
-        <img src="/growth/15.webp" alt="햇살이 비치는 커다란 나무와 숲" style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', objectPosition:'center 53%', zIndex:-2}} />
+        <img src={`/growth/${index+1}.webp`} alt={stage[1]} style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', objectPosition:'center 53%', zIndex:-2}} />
         <div aria-hidden="true" style={{position:'absolute', inset:0, background:'linear-gradient(0deg, rgba(28,23,13,.88), transparent 65%)', zIndex:-1}} />
         <figcaption style={{color:'#fffaf0', padding:'clamp(1rem, 4vw, 2rem)', textShadow:'0 1px 5px #261e13'}}>
-          <span style={{display:'block', fontSize:'.9rem'}}>정원 성장 · 15단계</span>
+          <span style={{display:'block', fontSize:'.9rem'}}>정원 성장 · {index+1}단계</span>
           <h3 style={{fontSize:'clamp(1.25rem, 3.5vw, 2rem)'}}>{stage[1]}</h3>
         </figcaption>
       </figure>

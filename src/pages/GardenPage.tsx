@@ -274,8 +274,9 @@ export default function GardenPage() {
                 <div className="big">{me.isSuperAdmin ? '∞' : me.leaves}</div>
               </div>
               <div className="cap">
-                <Muted>오늘 적립 {earnedToday} / {DAILY_CAP} (일일 상한)</Muted>
+                <Muted>오늘 글·댓글 작성 적립 {earnedToday} / {DAILY_CAP}</Muted>
                 <Track><Fill $pct={Math.min(100, (earnedToday / DAILY_CAP) * 100)} /></Track>
+                <Muted>공감으로 받은 나뭇잎은 일일 상한에 포함되지 않아요.</Muted>
               </div>
             </Summary>
             <Two>
