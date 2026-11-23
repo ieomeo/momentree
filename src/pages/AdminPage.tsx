@@ -91,6 +91,18 @@ export default function AdminPage() {
     }
   };
 
+  const chooseDecision = (id: string, action: ReportAction, hasDecision: boolean) => {
+    if (action === '이용 제한') { setRestrictId(id); return; }
+    if (action === '문제 없음' && !hasDecision) {
+      void run(async () => {
+        await adminAPI.resolveReport(id, action);
+        toast.success('문제 없음으로 처리했어요');
+      });
+      return;
+    }
+    setDecision({ id, action });
+  };
+
   // [추가] 처리 중인 위기 알림의 작성자 개인정보 확인 (열람 기록이 남아요)
   const openIdentity = async (alertId: string) => {
     try {
@@ -177,12 +189,12 @@ export default function AdminPage() {
                 <span>{r.targetType === 'post' ? '글' : '댓글'} · {r.reason}<br /><Muted as="span">“{r.targetPreview}”{r.detail ? ` — ${r.detail}` : ''}</Muted></span>
                 <Badge $bg={STATUS_COLOR[r.status]}>{r.action ?? STATUS_LABEL[r.status]}</Badge>
               </div>
-              {r.targetType === 'post' && <Link to={`/post/${r.targetId}`}>신고 대상 글 보기</Link>}
+              {r.targetDeleted ? <Muted as="div">신고 대상 삭제됨 · 복구 불가</Muted> : r.targetType === 'post' && <Link to={`/post/${r.targetId}`}>신고 대상 글 보기</Link>}
               {r.action && <Muted as="div">최근 결정: {r.action}{r.days != null ? ` · ${period(r.days)}` : ''}{r.stopped ? ' · 게시 중단' : ''}</Muted>}
               <div className="actions">
                 {r.status !== 'reviewing' && <Button $variant="sand" onClick={() => run(() => adminAPI.setReportStatus(r.id, 'reviewing'))}>{r.status === 'done' ? '다시 검토' : '검토 시작'}</Button>}
-                {REPORT_ACTIONS.map((act) => (
-                  <Button key={act} $variant="ghost" onClick={() => act === '이용 제한' ? setRestrictId(r.id) : setDecision({ id: r.id, action: act })}>{act}</Button>
+                {REPORT_ACTIONS.filter((act) => !(r.targetDeleted && act === '경고 및 삭제')).map((act) => (
+                  <Button key={act} $variant="ghost" onClick={() => chooseDecision(r.id, act, !!r.action)}>{act === '경고 및 삭제' ? '경고 및 게시 중단' : act}</Button>
                 ))}
                 <Button $variant="sand" onClick={() => setHistoryId(historyId === r.id ? null : r.id)}>조치 이력</Button>
               </div>
@@ -207,12 +219,12 @@ export default function AdminPage() {
 
       {adminModal && <CreateAdminModal onClose={() => setAdminModal(false)} />}
       {identityView && <IdentityModal view={identityView} onClose={() => setIdentityView(null)} />}
-      {decision && <ConfirmModal title={decision.action} confirmLabel="결정 적용"
-        message={decision.action === '문제 없음' ? '이 신고 건의 기존 조치를 해제합니다. 다른 신고의 조치는 유지됩니다.' : '작성자에게 경고하고 게시를 중단합니다. 해당 콘텐츠로 적립된 나뭇잎이 회수됩니다.'}
+      {decision && <ConfirmModal title={decision.action === '경고 및 삭제' ? '경고 및 게시 중단' : decision.action} confirmLabel="결정 적용"
+        message={decision.action === '문제 없음' ? '이 신고의 되돌릴 수 있는 조치를 해제합니다. 삭제된 글이나 댓글은 복구되지 않으며, 다른 신고의 조치는 유지됩니다.' : '작성자에게 경고하고 신고 대상만 삭제합니다. 글을 삭제하면 해당 글의 댓글과 공감도 함께 삭제됩니다. 삭제는 취소할 수 없으며, 연결된 보상만 회수합니다. 새 이용 제한은 걸지 않습니다.'}
         onClose={() => setDecision(null)} onConfirm={() => {
           const { id, action } = decision;
           setDecision(null);
-          void run(() => adminAPI.resolveReport(id, action));
+          void run(async () => { await adminAPI.resolveReport(id, action); toast.success(action === '문제 없음' ? '문제 없음으로 처리했어요' : '경고 및 삭제를 완료했어요'); });
         }} />}
       {restrictId && (
         <RestrictModal
