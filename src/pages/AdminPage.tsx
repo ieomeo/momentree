@@ -16,6 +16,25 @@ import { REPORT_ACTIONS } from '../types';
 import type { IdentityView, ProcessStatus, ReportAction } from '../types';
 import { color } from '../styles/theme';
 
+const DetailDialog = styled.dialog`
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(calc(100vw - 2rem), 900px);
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  border: 1px solid #d8decb;
+  border-radius: 16px;
+  padding: clamp(1rem, 4vw, 2rem);
+  color: inherit;
+  background: #fff;
+  &::backdrop { background: rgba(49, 39, 29, .42); }
+  .detail-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.25rem; }
+  .detail-section { background: #f8f5ed; border: 1px solid #e4e0d3; padding: 1rem; border-radius: 12px; overflow-wrap: anywhere; }
+  textarea { width: 100%; padding: .65rem; border-radius: 8px; border: 1px solid #d8decb; font: inherit; resize: vertical; }
+  @media (max-width: 640px) { .detail-grid { grid-template-columns: minmax(0, 1fr); } }
+`;
+
 function DetailRow({ summary, status, children, id, kind, memo }: {summary: string; status: string; children: ReactNode; id: string; kind: 'alert' | 'report'; memo: string}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [draft, setDraft] = useState(memo);
@@ -26,10 +45,11 @@ function DetailRow({ summary, status, children, id, kind, memo }: {summary: stri
     <Button type="button" $variant="ghost" onClick={() => dialog.current?.showModal()} style={{width:'100%',display:'flex',alignItems:'center',gap:'.7rem',textAlign:'left'}}>
       <span style={{flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{summary}</span><small style={{flexShrink:0}}>{status} ›</small>
     </Button>
-    <dialog ref={dialog} aria-label={summary} style={{width:'min(92vw, 680px)',maxHeight:'85vh',border:'1px solid #d8decb',borderRadius:16,padding:'clamp(1rem, 4vw, 2rem)'}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',gap:'1rem',marginBottom:'1rem'}}><h3>{summary}</h3><Button type="button" $variant="sand" onClick={() => dialog.current?.close()}>닫기</Button></div>
-      {children}
-      <form style={{marginTop:'1.4rem',paddingTop:'1rem',borderTop:'1px solid #d8decb'}} onSubmit={async e => {
+    <DetailDialog ref={dialog} aria-label={summary}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',gap:'1rem',marginBottom:'1rem'}}><h3>{kind === 'alert' ? '위기 알림 상세' : '신고 상세 · 처리'}</h3><Button type="button" $variant="sand" onClick={() => dialog.current?.close()}>닫기</Button></div>
+      <div className="detail-grid">
+      <section className="detail-section">{children}</section>
+      <form className="detail-section" onSubmit={async e => {
         e.preventDefault(); setBusy(true);
         try { await adminAPI.saveMemo(kind,id,draft); await qc.invalidateQueries(); toast.success('운영자 메모를 저장했어요'); }
         catch (error) { toast.error(errorMessage(error)); } finally { setBusy(false); }
@@ -37,7 +57,8 @@ function DetailRow({ summary, status, children, id, kind, memo }: {summary: stri
         <label style={{display:'grid',gap:'.5rem'}}>운영자 메모 <textarea rows={4} maxLength={2000} value={draft} onChange={e => setDraft(e.target.value)} placeholder="검토 내용이나 후속 조치를 기록하세요" /></label>
         <Button type="submit" disabled={busy || draft === memo} style={{marginTop:'.6rem'}}>메모 저장</Button>
       </form>
-    </dialog>
+      </div>
+    </DetailDialog>
   </Item>;
 }
 
@@ -73,17 +94,18 @@ const Stat = styled.button<{ $bg: string }>`
   .num { font-size: 2.2rem; font-weight: 800; }
 `;
 
-const Two = styled.div`
+const Two = styled.div<{ $single: boolean }>`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: ${({ $single }) => $single ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))'};
+  align-items: start;
   gap: 1rem;
-  @media (max-width: 960px) { grid-template-columns: 1fr; }
+  @media (max-width: 680px) { grid-template-columns: 1fr; }
 `;
 
 const Item = styled.div`
   background: ${color.bg};
   border-radius: 10px;
-  padding: 0.7rem 0.9rem;
+  padding: 0.2rem 0.3rem;
   margin-top: 0.6rem;
   .top { display: flex; justify-content: space-between; gap: 0.6rem; align-items: center; }
   .actions { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.5rem; }
@@ -182,7 +204,7 @@ export default function AdminPage() {
       </Stats>
       <Button type="button" $variant="sand" onClick={() => setFilter('all')}>전체 보기</Button>
 
-      <Two style={{marginTop: '1rem', gridTemplateColumns: 'minmax(0,1fr)'}}>
+      <Two $single={filter === 'alerts' || filter === 'reports'} style={{marginTop: '1rem'}}>
         {filter !== 'reports' && (
         <Card>
           <h3>위기 알림</h3>
