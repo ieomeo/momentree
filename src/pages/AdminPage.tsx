@@ -1,5 +1,5 @@
 import ConfirmModal from '../components/ConfirmModal';
-import { useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
@@ -15,6 +15,31 @@ import { errorMessage, timeAgo } from '../services/format';
 import { REPORT_ACTIONS } from '../types';
 import type { IdentityView, ProcessStatus, ReportAction } from '../types';
 import { color } from '../styles/theme';
+
+function DetailRow({ summary, status, children, id, kind, memo }: {summary: string; status: string; children: ReactNode; id: string; kind: 'alert' | 'report'; memo: string}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [draft, setDraft] = useState(memo);
+  const [busy, setBusy] = useState(false);
+  const qc = useQueryClient();
+  useEffect(() => { setDraft(memo); }, [memo]);
+  return <Item>
+    <Button type="button" $variant="ghost" onClick={() => dialog.current?.showModal()} style={{width:'100%',display:'flex',alignItems:'center',gap:'.7rem',textAlign:'left'}}>
+      <span style={{flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{summary}</span><small style={{flexShrink:0}}>{status} ›</small>
+    </Button>
+    <dialog ref={dialog} aria-label={summary} style={{width:'min(92vw, 680px)',maxHeight:'85vh',border:'1px solid #d8decb',borderRadius:16,padding:'clamp(1rem, 4vw, 2rem)'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',gap:'1rem',marginBottom:'1rem'}}><h3>{summary}</h3><Button type="button" $variant="sand" onClick={() => dialog.current?.close()}>닫기</Button></div>
+      {children}
+      <form style={{marginTop:'1.4rem',paddingTop:'1rem',borderTop:'1px solid #d8decb'}} onSubmit={async e => {
+        e.preventDefault(); setBusy(true);
+        try { await adminAPI.saveMemo(kind,id,draft); await qc.invalidateQueries(); toast.success('운영자 메모를 저장했어요'); }
+        catch (error) { toast.error(errorMessage(error)); } finally { setBusy(false); }
+      }}>
+        <label style={{display:'grid',gap:'.5rem'}}>운영자 메모 <textarea rows={4} maxLength={2000} value={draft} onChange={e => setDraft(e.target.value)} placeholder="검토 내용이나 후속 조치를 기록하세요" /></label>
+        <Button type="submit" disabled={busy || draft === memo} style={{marginTop:'.6rem'}}>메모 저장</Button>
+      </form>
+    </dialog>
+  </Item>;
+}
 
 const REPORTS_PER_PAGE = 3;
 
@@ -157,13 +182,13 @@ export default function AdminPage() {
       </Stats>
       <Button type="button" $variant="sand" onClick={() => setFilter('all')}>전체 보기</Button>
 
-      <Two style={{marginTop: '1rem', gridTemplateColumns: filter === 'alerts' || filter === 'reports' ? 'minmax(0,1fr)' : undefined}}>
+      <Two style={{marginTop: '1rem', gridTemplateColumns: 'minmax(0,1fr)'}}>
         {filter !== 'reports' && (
         <Card>
           <h3>위기 알림</h3>
           {shownAlerts.length === 0 && <Muted style={{ marginTop: '0.6rem' }}>이 상태의 위기 알림이 없어요.</Muted>}
           {shownAlerts.map((a) => (
-            <Item key={a.id}>
+            <DetailRow key={a.id} id={a.id} kind="alert" memo={a.memo ?? ''} summary={`${timeAgo(a.createdAt)} · 감지 ${a.keywordCount}건`} status={STATUS_LABEL[a.status]}>
               <div className="top">
                 <span>{timeAgo(a.createdAt)} · {a.postId ? <Link to={`/post/${a.postId}`} style={{ textDecoration: 'underline' }}>글 보기</Link> : '글 삭제됨'} · 키워드 {a.keywordCount}건</span>
                 <Badge $bg={STATUS_COLOR[a.status]}>{STATUS_LABEL[a.status]}</Badge>
@@ -173,7 +198,7 @@ export default function AdminPage() {
                 {a.status === 'pending' && <Button $variant="sand" onClick={() => run(() => adminAPI.setAlertStatus(a.id, 'reviewing'))}>검토 시작</Button>}
                 {a.status !== 'done' && <Button onClick={() => run(() => adminAPI.setAlertStatus(a.id, 'done'))}>조치 완료</Button>}
                 {a.status !== 'done' && (
-                  <Button $variant="ghost" onClick={() => openIdentity(a.id)}>작성자 개인정보 확인</Button>
+                  <Button $variant="ghost" onClick={e => { e.currentTarget.closest('dialog')?.close(); void openIdentity(a.id); }}>작성자 개인정보 확인</Button>
                 )}
                 {/* [추가] 작성자에게 도움 안내 알림 보내기 */}
                 {a.careSent ? (
@@ -192,7 +217,7 @@ export default function AdminPage() {
                   </Button>
                 )}
               </div>
-            </Item>
+            </DetailRow>
           ))}
         </Card>
         )}
@@ -202,7 +227,7 @@ export default function AdminPage() {
           <h3>신고 목록</h3>
           {shownReports.length === 0 && <Muted style={{ marginTop: '0.6rem' }}>이 상태의 신고가 없어요.</Muted>}
           {pageReports.map((r) => (
-            <Item key={r.id}>
+            <DetailRow key={r.id} id={r.id} kind="report" memo={r.memo ?? ''} summary={`${r.targetType === 'post' ? '글' : r.targetType === 'note' ? '쪽지' : '댓글'} · ${r.reason} · ${r.targetPreview}`} status={STATUS_LABEL[r.status]}>
               <div className="top">
                 <span>{r.targetType === 'post' ? '글' : r.targetType === 'note' ? '쪽지' : '댓글'} · {r.reason}<br /><Muted as="span">“{r.targetPreview}”{r.detail ? ` — ${r.detail}` : ''}</Muted></span>
                 <Badge $bg={STATUS_COLOR[r.status]}>{r.action ?? STATUS_LABEL[r.status]}</Badge>
@@ -216,7 +241,7 @@ export default function AdminPage() {
                 })}>{r.status === 'reviewing' ? '검토 중' : r.status === 'done' ? '다시 검토' : '검토 시작'}</Button>
                 {REPORT_ACTIONS.map((act) => (
                   <Button key={act} $variant="ghost"
-                    onClick={() => chooseDecision(r.id, act, !!r.action)}>{act}</Button>
+                    onClick={e => { e.currentTarget.closest('dialog')?.close(); chooseDecision(r.id, act, !!r.action); }}>{act}</Button>
                 ))}
                 <Button $variant="sand" onClick={() => setHistoryId(historyId === r.id ? null : r.id)}>조치 이력</Button>
               </div>
@@ -227,7 +252,7 @@ export default function AdminPage() {
                     {h.leafDelta !== 0 ? ` · 나뭇잎 ${h.leafDelta > 0 ? '+' : ''}${h.leafDelta}` : ''}
                   </div>)}
               </div>}
-            </Item>
+            </DetailRow>
           ))}
           {reportPageCount > 1 && <nav aria-label="신고 목록 페이지" style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
             <Button type="button" $variant="sand" disabled={activeReportPage === 1} onClick={() => setReportPage(activeReportPage - 1)}>이전</Button>

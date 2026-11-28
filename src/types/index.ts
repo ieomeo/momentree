@@ -68,6 +68,7 @@ export interface Comment {
 }
 
 export interface Report {
+  memo?: string;
   targetDeleted?: boolean;
   stopped?: boolean;
   days?: number | null;
@@ -84,6 +85,7 @@ export interface Report {
 }
 
 export interface CrisisAlert {
+  memo?: string;
   id: string;
   postId: string;
   keywordCount: number;
