@@ -199,6 +199,7 @@ export const reportAPI = {
 
 // ---------- 운영자 ----------
 export const adminAPI = {
+  crisisKeywords: () => rpc<Record<string, string[]>>('admin.crisisKeywords'),
   // 운영자 계정을 만드는 유일한 경로
   createAdmin: (input: { email: string; password: string; nickname: string }) => rpc<void>('admin.createAdmin', input),
 

@@ -126,8 +126,8 @@ export default function AdminPage() {
   const alertList = alerts.data ?? [];
   const count = (list: { status: ProcessStatus }[], s: ProcessStatus) => list.filter((x) => x.status === s).length;
 
-  const shownAlerts = alertList.filter((a) => filter === 'all' || (filter === 'alerts' ? a.status === 'pending' : a.status === filter));
-  const shownReports = reportList.filter((r) => filter === 'all' || (filter === 'reports' ? r.status === 'pending' : r.status === filter));
+  const shownAlerts = alertList.filter((a) => filter !== 'reports' && (filter === 'all' || (filter === 'alerts' ? a.status === 'pending' : a.status === filter)));
+  const shownReports = reportList.filter((r) => filter !== 'alerts' && (filter === 'all' || (filter === 'reports' ? r.status === 'pending' : r.status === filter)));
   const reportPageCount = Math.max(1, Math.ceil(shownReports.length / REPORTS_PER_PAGE));
   const activeReportPage = Math.min(reportPage, reportPageCount);
   const pageReports = shownReports.slice((activeReportPage - 1) * REPORTS_PER_PAGE, activeReportPage * REPORTS_PER_PAGE);
@@ -139,6 +139,7 @@ export default function AdminPage() {
     <div>
       <TitleRow>
         <h2>운영자 대시보드</h2>
+        <Link to="/admin/keywords">위기 알림 키워드 →</Link>
         <Button
           $variant="sand"
           style={{ padding: '0.25rem 0.7rem', fontSize: '0.8rem' }}
@@ -156,7 +157,8 @@ export default function AdminPage() {
       </Stats>
       <Button type="button" $variant="sand" onClick={() => setFilter('all')}>전체 보기</Button>
 
-      <Two style={{marginTop: '1rem'}}>
+      <Two style={{marginTop: '1rem', gridTemplateColumns: filter === 'alerts' || filter === 'reports' ? 'minmax(0,1fr)' : undefined}}>
+        {filter !== 'reports' && (
         <Card>
           <h3>위기 알림</h3>
           {shownAlerts.length === 0 && <Muted style={{ marginTop: '0.6rem' }}>이 상태의 위기 알림이 없어요.</Muted>}
@@ -193,6 +195,8 @@ export default function AdminPage() {
             </Item>
           ))}
         </Card>
+        )}
+        {filter !== 'alerts' && (
 
         <Card>
           <h3>신고 목록</h3>
@@ -235,6 +239,7 @@ export default function AdminPage() {
             <Button type="button" $variant="sand" disabled={activeReportPage === reportPageCount} onClick={() => setReportPage(activeReportPage + 1)}>다음</Button>
           </nav>}
         </Card>
+        )}
       </Two>
 
       <Card style={{ background: color.greenSoft, marginTop: '1rem' }}>
